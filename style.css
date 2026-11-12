@@ -1,0 +1,382 @@
+/* =========================================================
+   Portfolio – desktop-first, intrinsically responsive
+
+   The big-screen layout is the baseline. Instead of overriding it
+   with lots of media queries, the layout adapts by itself using:
+     - flex-wrap       (hero + footer drop to one column when cramped)
+     - CSS grid auto-fit (project cards go 3 -> 2 -> 1 columns)
+     - clamp()         (fluid type, spacing and diagonal)
+     - container units (cqi) (text scales with its own box)
+   Media queries are kept for the spots that still break (see bottom).
+   ========================================================= */
+
+
+/* ---------- 1. Design tokens ---------- */
+:root {
+  /* A touch darker than the mockup's teal (#0690b5, 3.7:1 with white)
+     so white text passes WCAG AA (4.9:1). */
+  --brand: #0b7a9a;
+  --ink: #222;
+  --ink-soft: #4a4a4a;
+  --surface: #fff;
+
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "Roboto", system-ui, sans-serif;
+
+  --max-width: 78rem;
+  --page-pad: clamp(1rem, 6vw, 5rem);
+
+  /* Side padding that keeps content centred up to --max-width and lets
+     full-width backgrounds (hero, footer) run edge to edge without
+     extra wrapper divs. The 100% resolves where it is used. */
+  --gutter: max(var(--page-pad), calc((100% - var(--max-width)) / 2));
+
+  --shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+
+/* ---------- 2. Base / reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.125rem; /* rem, so it respects the user's browser font size */
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: clamp(2rem, 1.25rem + 2vw, 2.75rem);
+}
+
+p {
+  margin: 0;
+}
+
+ul[role="list"] {
+  /* role="list" keeps list semantics in Safari/VoiceOver after list-style: none */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+}
+
+/* Visible keyboard focus on both light and teal backgrounds */
+:focus-visible {
+  outline: 3px solid #111;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px #fff;
+}
+
+
+/* ---------- 3. Social icons (used in about card and footer) ---------- */
+.social-icons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.social-icons a {
+  display: inline-flex;
+  padding: 0.5rem; /* bigger click/tap target: icon 2rem + padding = 3rem */
+  border-radius: 0.25rem;
+}
+
+.social-icons img {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* ---------- 4. Hero (portrait + about card) ---------- */
+.hero {
+  position: relative;
+  isolation: isolate; /* keeps the z-index: -1 background inside the hero */
+  display: flex;
+  flex-wrap: wrap; /* stacks portrait above card when there isn't room: no media query */
+  align-items: center;
+  justify-content: center;
+  padding-block: clamp(2rem, 5vw, 4rem);
+  padding-inline: var(--gutter);
+}
+
+/* Teal background with the diagonal edge.
+   The rise of the diagonal scales with viewport width. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--brand);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - clamp(4rem, 22vw, 20rem)), 0 100%);
+}
+
+.portrait {
+  position: relative;
+  flex: 1 1 20rem;
+  max-width: 34rem;
+  aspect-ratio: 11 / 12;
+  container-type: inline-size; /* lets the h1 size itself from this box (cqi) */
+  background: #d9d9d9;
+  box-shadow: var(--shadow);
+}
+
+.portrait img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Dark fade so the white name stays readable over any photo */
+.portrait::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+  pointer-events: none;
+}
+
+.portrait h1 {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+  padding: 0 1rem 0.75rem;
+  color: #fff;
+  font-size: clamp(1.75rem, 11cqi, 4rem);
+}
+
+.about {
+  flex: 2 1 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  background: var(--surface);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+}
+
+.about h2 {
+  color: var(--ink);
+}
+
+.about .social-icons {
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+
+/* ---------- 5. My work ---------- */
+.work {
+  padding-block: clamp(2.5rem, 7vw, 5rem) clamp(3rem, 8vw, 6rem);
+  padding-inline: var(--gutter);
+}
+
+.work h2 {
+  margin-bottom: 1.25rem;
+}
+
+/* Max 3 columns, min card width 17rem. The grid works out 3 / 2 / 1 columns
+   on its own as the space shrinks: no media query needed. */
+.project-grid {
+  --gap: clamp(1rem, 3vw, 3rem);
+  --card-min: 17rem;
+
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, max(var(--card-min), (100% - 2 * var(--gap)) / 3)), 1fr)
+  );
+}
+
+.project-grid > li {
+  display: flex; /* makes every card in a row the same height */
+  min-width: 0;
+}
+
+/* Placeholder colours (to be replaced by real screenshots).
+   Orange and blue are darker than the mockup so the white text passes contrast. */
+.project-grid > li:nth-child(6n + 1) { --card-color: #9f1d1e; }
+.project-grid > li:nth-child(6n + 2) { --card-color: #7e72c9; }
+.project-grid > li:nth-child(6n + 3) { --card-color: #5b8e4b; }
+.project-grid > li:nth-child(6n + 4) { --card-color: #c261b4; }
+.project-grid > li:nth-child(6n + 5) { --card-color: #a8631a; }
+.project-grid > li:nth-child(6n + 6) { --card-color: #2c7fb0; }
+
+.project-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size; /* the placeholder text scales with the card (cqi) */
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.screenshot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 11 / 8;
+  padding: 1rem;
+  background: var(--card-color, #555);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 11cqi, 3rem); /* never below 24px: counts as "large text" for contrast */
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Real screenshots: put an <img class="screenshot"> in the same slot */
+img.screenshot {
+  width: 100%;
+  object-fit: cover;
+}
+
+.project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem 0;
+}
+
+.project-header h3 {
+  font-size: 1.375rem;
+}
+
+.project-links {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: -0.5rem; /* optically align the icons with the card edge padding */
+}
+
+.project-links a {
+  display: inline-flex;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.project-links img {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.project-card p {
+  padding: 0.25rem 1.25rem 1.5rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+
+/* ---------- 6. Footer / contact ---------- */
+.contact {
+  display: flex;
+  flex-wrap: wrap; /* text above photo when cramped: no media query */
+  align-items: flex-start;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  padding-inline: var(--gutter);
+  background: var(--brand);
+  color: #fff;
+}
+
+.contact-info {
+  flex: 1 1 18rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.contact address {
+  display: grid;
+  gap: 0.75rem;
+  font-style: normal;
+}
+
+.contact address p {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  overflow-wrap: anywhere; /* long email addresses never cause sideways scrolling */
+}
+
+.contact address svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.contact a {
+  text-underline-offset: 0.2em;
+}
+
+.contact .social-icons {
+  margin-left: -0.5rem; /* optically align icons with the text above */
+}
+
+.contact > img {
+  flex: 1 1 24rem;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+/* ---------- 7. Small interactions ---------- */
+.social-icons a:hover,
+.project-links a:hover {
+  transform: translateY(-2px);
+}
+
+/* Only animate for people who haven't asked for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .social-icons a,
+  .project-links a {
+    transition: transform 0.15s ease;
+  }
+}
+
+@media (max-width: 600px) {
+    .about .social-icons {
+        justify-content: center;
+    }
+}
+
+/* =========================================================
+   8. Layout media queries – add ONLY where the layout still breaks.
+
+   How to find those spots: open DevTools, switch on the device toolbar
+   and slowly drag the width from ~1440px down to 320px. When something
+   looks wrong, note the width and fix it here. Zooming the browser also
+   triggers these queries (see the lesson's "Zooming!" section).
+
+   Example (commented out):
+
+   @media (max-width: 600px) {
+     .about .social-icons {
+       justify-content: center;
+     }
+   }
+   ========================================================= */
